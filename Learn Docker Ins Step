@@ -1,0 +1,96 @@
+# コンテナ一覧取得
+$ sudo docker ps -a
+# コンテナを起動する
+$ sudo docker start <CONTAINER ID> 
+$ sudo docker start $(sudo docker ps -a)
+# 全コンテナ停止
+$ sudo docker stop $(sudo docker ps -q)
+# 全コンテナ削除
+$ sudo docker rm $(sudo docker ps -q -a)
+# 全イメージ削除
+$ sudo docker rmi $(sudo docker images -q)
+# 全イメージ削除(forced)
+$ sudo docker rmi -f $(sudo docker image list -q)
+
+-- Dockerでシグナリングサーバー起動
+$ sudo docker-compose run --rm -p 192.168.11.108:9002:9002 app
+$ sudo docker-compose run --rm -p localhost:9002:9002 app
+####################################################################################################
+#Docker CEのインストール
+####################################################################################################
+#1.最初に古いDockerがインストールされていれば削除します。
+  $ sudo apt-get remove docker docker-engine
+#2.次にaptをhttps越しで利用できるようにするライブラリをインストールします。
+  $ sudo apt install apt-transport-https ca-certificates curl software-properties-common
+#3.DockerオフィシャルのGPG鍵を追加します。
+  $ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+#4.Docker CE安定板のリポジトリを追加します。
+#    コマンド中のlsb_release -csはUbuntuディストリビューション名を表示します。Ubuntu16.04はxenialを表示します。
+  $ sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+#5.aptパッケージのインデックスを更新します。これでaptからdockerをインストールできるようになります。
+  $ sudo apt-get update
+#6.最新版のDocker CEをインストールします。インストールに成功するとDockerのデーモンが自動で起動します。
+  $ sudo apt-get install docker-ce
+#    バージョンを指定する場合は以下のようにします。もしも既にインストールされていれば指定したバージョンで上書きされます。
+  $ sudo apt-get install docker-ce=
+#7.インストールしたDockerのバージョンを確認します。-vでバージョンとビルド番号が表示されます。
+  $ sudo docker -v
+#8.詳細なインストール状況を見るにはdocker infoコマンドを利用します。
+  $ sudo docker info
+#9.Dockerデーモンが起動しているか状態を確認します。
+  $ sudo systemctl status docker
+####################################################################################################
+#Docker+Node.jsの開発環境構築
+####################################################################################################
+#1.フォルダ作成
+  $ sudo mkdir $HOME/bin/webrtc
+    ./webrtc
+    ├ssl
+    │├testpage_crt.pem
+    │└testpage_key.pem
+    └signaling_room.js
+  $ cd $HOME/bin
+#2.Dockerfileを書く
+  # hub.docker.comから公式で用意されたイメージをベースとする
+  FROM node:10.13-alpine
+  # カレントディレクトリを app に
+  WORKDIR /webrtc
+  # デフォルトで node が起動するので sh を代わりに起動
+  CMD ["sh"]
+#3.docker-compose.yml を書く
+  version: '2'
+  services:
+    app:
+      build: .
+      volumes: 
+        - ./webrtc:/webrtc
+      ports:
+        - "9002:9002"
+#4.ビルド
+  $ sudo docker-compose build
+#5.実行
+  $ sudo docker-compose run --rm app
+#6.初期設定を行う
+  /webrtc # npm init
+    package name	"webrtc_test"
+    version	指定なし（1.0.0）
+    description	"webRTC POC develop"
+    entry point	指定なし（index.js）
+    test command	指定なし
+    git repository	指定なし
+    keywords	指定なし
+    author	指定なし
+    license	指定なし（ISC）
+#7.Gulpのインストール
+  /webrtc # npm install -save gulp-cli
+#8.Socket.IOのインストール
+  /webrtc # npm install socket.io
+#9.設定終了
+  /webrtc # exit
+####################################################################################################
+#シグナリングサーバ起動
+####################################################################################################
+#1.コンテナ一起動
+  $ sudo docker-compose run --rm -p {IPアドレス}:9002:9002 app
+#2.シグナリングサーバ起動
+  /webrtc # node signaling_room
